@@ -1,0 +1,316 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = 'spelhub',
+    LoadingTitle = 'Sell Lemons',
+    LoadingSubtitle = 'By Spel',
+    ConfigurationSaving = {Enabled = false},
+    KeySystem = false,
+})
+local Tab = Window:CreateTab('Main Features', nil)
+local autoUpgrade = false
+local autoPurchase = false
+local autoCollect = false
+local autoFruit = false
+local autoRebirth = false
+local autoCollectStand = false
+local upgradeThread = nil
+local purchaseThread = nil
+local collectThread = nil
+local fruitThread = nil
+local rebirthThread = nil
+local collectStandThread = nil
+local LocalPlayer = game:GetService('Players').LocalPlayer
+
+local function getMyTycoon()
+    for i = 1, 10 do
+        local tycoon = workspace:FindFirstChild('Tycoon' .. i)
+
+        if tycoon then
+            local ownerValue = tycoon:FindFirstChild('Owner')
+
+            if ownerValue then
+                if ownerValue.Value == LocalPlayer or ownerValue.Value == LocalPlayer.Name or tostring(ownerValue.Value) == LocalPlayer.Name then
+                    return tycoon
+                end
+            end
+
+            local playerValue = tycoon:FindFirstChild('Player')
+
+            if playerValue then
+                if playerValue.Value == LocalPlayer or playerValue.Value == LocalPlayer.Name then
+                    return tycoon
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+Tab:CreateToggle({
+    Name = 'Auto Upgrade',
+    CurrentValue = false,
+    Flag = 'ToggleUpgrade',
+    Callback = function(Value)
+        autoUpgrade = Value
+
+        if autoUpgrade then
+            upgradeThread = task.spawn(function()
+                while autoUpgrade do
+                    pcall(function()
+                        local myTycoon = getMyTycoon()
+
+                        if myTycoon and autoUpgrade then
+                            for _, object in ipairs(myTycoon:GetDescendants())do
+                                if not autoUpgrade then
+                                    break
+                                end
+                                if object:IsA('RemoteFunction') and object.Name == 'Upgrade' then
+                                    task.spawn(function()
+                                        if autoUpgrade then
+                                            object:InvokeServer(1)
+                                        end
+                                    end)
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.01)
+                end
+            end)
+        else
+            if upgradeThread then
+                task.cancel(upgradeThread)
+
+                upgradeThread = nil
+            end
+        end
+    end,
+})
+Tab:CreateToggle({
+    Name = 'Auto Purchase Stuff',
+    CurrentValue = false,
+    Flag = 'TogglePurchase',
+    Callback = function(Value)
+        autoPurchase = Value
+
+        if autoPurchase then
+            purchaseThread = task.spawn(function()
+                while autoPurchase do
+                    pcall(function()
+                        local myTycoon = getMyTycoon()
+
+                        if myTycoon and autoPurchase then
+                            for _, object in ipairs(myTycoon:GetDescendants())do
+                                if not autoPurchase then
+                                    break
+                                end
+                                if object:IsA('RemoteFunction') and object.Name == 'Purchase' then
+                                    task.spawn(function()
+                                        if autoPurchase then
+                                            object:InvokeServer(false)
+                                            Rayfield:Notify({
+                                                Title = 'Purchase Attempt',
+                                                Content = 'Attempted buying: ' .. tostring(object.Parent.Name),
+                                                Duration = 1.5,
+                                                Image = 4483362458,
+                                            })
+                                        end
+                                    end)
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        else
+            if purchaseThread then
+                task.cancel(purchaseThread)
+
+                purchaseThread = nil
+            end
+        end
+    end,
+})
+Tab:CreateToggle({
+    Name = 'Auto Collect Cash',
+    CurrentValue = false,
+    Flag = 'ToggleCollect',
+    Callback = function(Value)
+        autoCollect = Value
+
+        if autoCollect then
+            collectThread = task.spawn(function()
+                while autoCollect do
+                    pcall(function()
+                        local character = LocalPlayer.Character
+                        local rootPart = character and (character:FindFirstChild('HumanoidRootPart') or character:FindFirstChild('Torso'))
+
+                        if rootPart and autoCollect then
+                            for _, object in ipairs(workspace:GetDescendants())do
+                                if not autoCollect then
+                                    break
+                                end
+                                if object:IsA('BasePart') and (object.Name == 'CashDrop' or object.Name == 'CashDrops') then
+                                    local oldCFrame = rootPart.CFrame
+
+                                    if autoCollect then
+                                        rootPart.CFrame = object.CFrame
+                                        rootPart.CFrame = oldCFrame
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.3)
+                end
+            end)
+        else
+            if collectThread then
+                task.cancel(collectThread)
+
+                collectThread = nil
+            end
+        end
+    end,
+})
+Tab:CreateToggle({
+    Name = 'Auto Collect Fruit',
+    CurrentValue = false,
+    Flag = 'ToggleFruit',
+    Callback = function(Value)
+        autoFruit = Value
+
+        if autoFruit then
+            fruitThread = task.spawn(function()
+                while autoFruit do
+                    pcall(function()
+                        local myTycoon = getMyTycoon()
+                        local character = LocalPlayer.Character
+                        local rootPart = character and (character:FindFirstChild('HumanoidRootPart') or character:FindFirstChild('Torso'))
+
+                        if myTycoon and rootPart and autoFruit then
+                            for _, tree in ipairs(myTycoon:GetDescendants())do
+                                if not autoFruit then
+                                    break
+                                end
+                                if tree:IsA('Model') and tree.Name == 'LemonTree' then
+                                    for _, object in ipairs(tree:GetDescendants())do
+                                        if not autoFruit then
+                                            break
+                                        end
+                                        if object:IsA('BasePart') and object.Name == 'Fruit' then
+                                            local oldCFrame = rootPart.CFrame
+
+                                            if autoFruit then
+                                                rootPart.CFrame = object.CFrame
+
+                                                local clicker = object:FindFirstChild('ClickPart') or object:FindFirstChildOfClass('ClickDetector') or object.Parent:FindFirstChild('ClickPart')
+
+                                                if clicker and autoFruit then
+                                                    if clicker:IsA('ClickDetector') then
+                                                        fireclickdetector(clicker)
+                                                    elseif clicker:FindFirstChildOfClass('ClickDetector') then
+                                                        fireclickdetector(clicker:FindFirstChildOfClass('ClickDetector'))
+                                                    end
+                                                end
+
+                                                rootPart.CFrame = oldCFrame
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.4)
+                end
+            end)
+        else
+            if fruitThread then
+                task.cancel(fruitThread)
+
+                fruitThread = nil
+            end
+        end
+    end,
+})
+Tab:CreateToggle({
+    Name = 'Auto Rebirth (10m)',
+    CurrentValue = false,
+    Flag = 'ToggleRebirth',
+    Callback = function(Value)
+        autoRebirth = Value
+
+        if autoRebirth then
+            rebirthThread = task.spawn(function()
+                while autoRebirth do
+                    pcall(function()
+                        local myTycoon = getMyTycoon()
+
+                        if myTycoon and autoRebirth then
+                            local remotes = myTycoon:FindFirstChild('Remotes')
+                            local rebirthRemote = remotes and remotes:FindFirstChild('Rebirth')
+
+                            if rebirthRemote and rebirthRemote:IsA('RemoteFunction') then
+                                rebirthRemote:InvokeServer()
+                                Rayfield:Notify({
+                                    Name = 'Auto Rebirth',
+                                    Content = 'Successfully sent Rebirth request to your Tycoon!',
+                                    Duration = 5,
+                                    Image = 4483362458,
+                                })
+                            end
+                        end
+                    end)
+                    task.wait(600)
+                end
+            end)
+        else
+            if rebirthThread then
+                task.cancel(rebirthThread)
+
+                rebirthThread = nil
+            end
+        end
+    end,
+})
+Tab:CreateToggle({
+    Name = 'Auto Collect Stand',
+    CurrentValue = false,
+    Flag = 'ToggleCollectStand',
+    Callback = function(Value)
+        autoCollectStand = Value
+
+        if autoCollectStand then
+            collectStandThread = task.spawn(function()
+                while autoCollectStand do
+                    pcall(function()
+                        local myTycoon = getMyTycoon()
+
+                        if myTycoon and autoCollectStand then
+                            local remotes = myTycoon:FindFirstChild('Remotes')
+                            local wakeRemote = remotes and remotes:FindFirstChild('WakeIncomeStream')
+
+                            if wakeRemote and wakeRemote:IsA('RemoteFunction') then
+                                task.spawn(function()
+                                    if autoCollectStand then
+                                        wakeRemote:InvokeServer('LemonStand')
+                                    end
+                                end)
+                            end
+                        end
+                    end)
+                    task.wait(0.01)
+                end
+            end)
+        else
+            if collectStandThread then
+                task.cancel(collectStandThread)
+
+                collectStandThread = nil
+            end
+        end
+    end,
+})
