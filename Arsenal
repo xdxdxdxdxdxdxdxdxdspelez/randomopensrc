@@ -1,0 +1,304 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = 'Voided Enhancing',
+    LoadingTitle = 'Voided Enhancing',
+    LoadingSubtitle = 'by spel | Arsenal',
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = 'VoidedEnhancing',
+        FileName = 'ArsenalConfig',
+    },
+})
+local MainTab = Window:CreateTab('Main', 4483362458)
+local Players = game:GetService('Players')
+local RunService = game:GetService('RunService')
+local lp = Players.LocalPlayer
+local infAmmoEnabled = false
+local fastFireEnabled = false
+local accuracyEnabled = false
+local alwaysAutoEnabled = false
+local hitboxEnabled = false
+local hitboxSize = 15
+local hitboxTransparency = 7
+local teamCheckMode = 'Team-Based'
+local originalValues = {
+    FireRate = {},
+    ReloadTime = {},
+    EReloadTime = {},
+    Auto = {},
+    Spread = {},
+    Recoil = {},
+    Hitboxes = {},
+}
+
+RunService.Stepped:Connect(function()
+    if infAmmoEnabled then
+        pcall(function()
+            game:GetService('ReplicatedStorage').wkspc.CurrentCurse.Value = 'Infinite Ammo'
+
+            local playerGui = lp:FindFirstChild('PlayerGui')
+
+            if playerGui and playerGui:FindFirstChild('GUI') then
+                playerGui.GUI.Client.Variables.ammocount.Value = 99
+                playerGui.GUI.Client.Variables.ammocount2.Value = 99
+            end
+        end)
+    end
+
+    pcall(function()
+        for _, weapon in next, game.ReplicatedStorage.Weapons:GetChildren()do
+            if fastFireEnabled then
+                for _, property in next, weapon:GetChildren()do
+                    if property.Name == 'FireRate' or property.Name == 'BFireRate' then
+                        if not originalValues.FireRate[property] then
+                            originalValues.FireRate[property] = property.Value
+                        end
+
+                        property.Value = 0.02
+                    end
+                end
+            end
+            if alwaysAutoEnabled then
+                for _, property in next, weapon:GetChildren()do
+                    if property.Name == 'Auto' or property.Name == 'AutoFire' or property.Name == 'Automatic' or property.Name == 'AutoShoot' then
+                        if not originalValues.Auto[property] then
+                            originalValues.Auto[property] = property.Value
+                        end
+
+                        property.Value = true
+                    end
+                end
+            end
+            if accuracyEnabled then
+                for _, property in next, weapon:GetChildren()do
+                    if property.Name == 'AReload' or property.Name == 'RecoilControl' or property.Name == 'EReload' or property.Name == 'SReload' or property.Name == 'ReloadTime' or property.Name == 'EquipTime' or property.Name == 'Spread' or property.Name == 'MaxSpread' or property.Name == 'EReloadTime' then
+                        if not originalValues.ReloadTime[property] then
+                            originalValues.ReloadTime[property] = property.Value
+                        end
+
+                        property.Value = 0
+                    end
+                end
+            end
+        end
+    end)
+
+    if hitboxEnabled then
+        pcall(function()
+            for _, player in ipairs(Players:GetPlayers())do
+                if player ~= lp and player.Character then
+                    local isTargetEnemy = false
+
+                    if teamCheckMode == 'FFA' then
+                        isTargetEnemy = true
+                    elseif teamCheckMode == 'Everyone' then
+                        isTargetEnemy = true
+                    elseif teamCheckMode == 'Team-Based' then
+                        isTargetEnemy = (player.Team ~= lp.Team)
+                    end
+                    if isTargetEnemy and player.Character:FindFirstChild('HumanoidRootPart') then
+                        local partsToModify = {
+                            'UpperTorso',
+                            'Head',
+                            'HumanoidRootPart',
+                            'HeadHB',
+                        }
+
+                        for _, partName in ipairs(partsToModify)do
+                            local part = player.Character:FindFirstChild(partName)
+
+                            if part and part:IsA('BasePart') then
+                                if not originalValues.Hitboxes[part] then
+                                    originalValues.Hitboxes[part] = {
+                                        Size = part.Size,
+                                        Transparency = part.Transparency,
+                                        CanCollide = part.CanCollide,
+                                    }
+                                end
+
+                                part.CanCollide = false
+                                part.Transparency = hitboxTransparency / 10
+                                part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+local function restoreDefaults(category, cacheTable)
+    for targetInstance, originalData in pairs(cacheTable)do
+        if targetInstance and targetInstance.Parent then
+            if category == 'Hitboxes' then
+                targetInstance.Size = originalData.Size
+                targetInstance.Transparency = originalData.Transparency
+                targetInstance.CanCollide = originalData.CanCollide
+            else
+                targetInstance.Value = originalData
+            end
+        end
+    end
+
+    table.clear(cacheTable)
+end
+
+MainTab:CreateToggle({
+    Name = 'Infinite Ammo',
+    CurrentValue = false,
+    Flag = 'InfAmmo',
+    Callback = function(state)
+        infAmmoEnabled = state
+
+        if not state then
+            game:GetService('ReplicatedStorage').wkspc.CurrentCurse.Value = ''
+        end
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'Fast Fire Rate',
+    CurrentValue = false,
+    Flag = 'FastFire',
+    Callback = function(state)
+        fastFireEnabled = state
+
+        if not state then
+            restoreDefaults('FireRate', originalValues.FireRate)
+        end
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'Always Auto',
+    CurrentValue = false,
+    Flag = 'AlwaysAuto',
+    Callback = function(state)
+        alwaysAutoEnabled = state
+
+        if not state then
+            restoreDefaults('Auto', originalValues.Auto)
+        end
+    end,
+})
+MainTab:CreateToggle({
+    Name = '100% Accuracy & Fast Reload',
+    CurrentValue = false,
+    Flag = 'MaxAccuracy',
+    Callback = function(state)
+        accuracyEnabled = state
+
+        if not state then
+            restoreDefaults('Accuracy', originalValues.ReloadTime)
+        end
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'Enable Hitbox Expander',
+    CurrentValue = false,
+    Flag = 'HitboxToggle',
+    Callback = function(state)
+        hitboxEnabled = state
+
+        if not state then
+            restoreDefaults('Hitboxes', originalValues.Hitboxes)
+        end
+    end,
+})
+MainTab:CreateSlider({
+    Name = 'Hitbox Expansion Size',
+    Range = {2, 30},
+    Increment = 1,
+    Suffix = 'Studs',
+    CurrentValue = 15,
+    Flag = 'HitboxSizeSlider',
+    Callback = function(value)
+        hitboxSize = value
+    end,
+})
+MainTab:CreateSlider({
+    Name = 'Hitbox Transparency',
+    Range = {1, 10},
+    Increment = 1,
+    Suffix = '/10',
+    CurrentValue = 7,
+    Flag = 'HitboxTransSlider',
+    Callback = function(value)
+        hitboxTransparency = value
+    end,
+})
+MainTab:CreateDropdown({
+    Name = 'Hitbox Team Filter',
+    Options = {
+        'Team-Based',
+        'FFA',
+        'Everyone',
+    },
+    CurrentOption = {
+        'Team-Based',
+    },
+    MultipleOptions = false,
+    Flag = 'TeamCheckDropdown',
+    Callback = function(option)
+        teamCheckMode = option[1] or option
+
+        if hitboxEnabled then
+            restoreDefaults('Hitboxes', originalValues.Hitboxes)
+        end
+    end,
+})
+
+local function toggleBadge(badgeName, state)
+    if lp:FindFirstChild(badgeName) then
+        lp[badgeName]:Destroy()
+    end
+    if state then
+        Instance.new('IntValue', lp).Name = badgeName
+    end
+end
+
+MainTab:CreateToggle({
+    Name = 'IsChad',
+    CurrentValue = false,
+    Flag = 'IsChad',
+    Callback = function(x)
+        toggleBadge('IsChad', x)
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'VIP',
+    CurrentValue = false,
+    Flag = 'VIP',
+    Callback = function(x)
+        toggleBadge('VIP', x)
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'OldVIP',
+    CurrentValue = false,
+    Flag = 'OldVIP',
+    Callback = function(x)
+        toggleBadge('OldVIP', x)
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'Romin',
+    CurrentValue = false,
+    Flag = 'Romin',
+    Callback = function(x)
+        toggleBadge('Romin', x)
+    end,
+})
+MainTab:CreateToggle({
+    Name = 'IsAdmin',
+    CurrentValue = false,
+    Flag = 'IsAdmin',
+    Callback = function(x)
+        toggleBadge('IsAdmin', x)
+    end,
+})
+Rayfield:Notify({
+    Title = 'Voided Enhancing',
+    Content = 'All Slider and Layout Constraints Resolved!',
+    Duration = 3,
+    Image = 4483362458,
+})
