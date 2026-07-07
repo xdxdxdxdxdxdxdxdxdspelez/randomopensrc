@@ -1,0 +1,162 @@
+local players = game:GetService('Players')
+local run_service = game:GetService('RunService')
+local workspace = game:GetService('Workspace')
+local camera = workspace.CurrentCamera
+local visuals = {
+    enabled = true,
+    names = true,
+    boxes = true,
+    health = true,
+    distance = true,
+}
+local esp_objects = {}
+
+local function create_esp_elements(plr)
+    local ok, drawing_lib = pcall(function()
+        return Drawing
+    end)
+
+    if not ok or not drawing_lib then
+        return
+    end
+
+    local drawings = {
+        box_outline = drawing_lib.new('Square'),
+        box = drawing_lib.new('Square'),
+        name = drawing_lib.new('Text'),
+        distance = drawing_lib.new('Text'),
+        item = drawing_lib.new('Text'),
+        health_outline = drawing_lib.new('Square'),
+        health_bg = drawing_lib.new('Square'),
+        health_bar = drawing_lib.new('Square'),
+    }
+
+    drawings.box_outline.Thickness = 3
+    drawings.box_outline.Filled = false
+    drawings.box_outline.Color = Color3.new(0, 0, 0)
+    drawings.box.Thickness = 1
+    drawings.box.Filled = false
+    drawings.box.Color = Color3.new(1, 1, 1)
+    drawings.name.Size = 13
+    drawings.name.Center = true
+    drawings.name.Outline = true
+    drawings.name.Font = 2
+    drawings.name.Color = Color3.new(1, 1, 1)
+    drawings.distance.Size = 13
+    drawings.distance.Center = true
+    drawings.distance.Outline = true
+    drawings.distance.Font = 2
+    drawings.distance.Color = Color3.fromRGB(180, 180, 200)
+    drawings.item.Size = 13
+    drawings.item.Center = true
+    drawings.item.Outline = true
+    drawings.item.Font = 2
+    drawings.item.Color = Color3.fromRGB(180, 180, 200)
+    drawings.health_outline.Thickness = 3
+    drawings.health_outline.Filled = false
+    drawings.health_outline.Color = Color3.new(0, 0, 0)
+    drawings.health_bg.Thickness = 1
+    drawings.health_bg.Filled = true
+    drawings.health_bg.Color = Color3.new(0, 0, 0)
+    drawings.health_bar.Thickness = 1
+    drawings.health_bar.Filled = true
+    drawings.health_bar.Color = Color3.new(0, 1, 0)
+    esp_objects[plr] = drawings
+end
+local function clean_esp_elements(plr)
+    if esp_objects[plr] then
+        for _, obj in pairs(esp_objects[plr])do
+            pcall(function()
+                obj:Destroy()
+            end)
+        end
+
+        esp_objects[plr] = nil
+    end
+end
+local function update_esp_render()
+    for plr, drawings in pairs(esp_objects)do
+        local char = plr.Character
+
+        if visuals.enabled and char and char:FindFirstChild('HumanoidRootPart') and char:FindFirstChild('Humanoid') and char.Humanoid.Health > 0 then
+            local hrp = char.HumanoidRootPart
+            local pos, on_screen = camera:WorldToViewportPoint(hrp.Position)
+
+            if on_screen then
+                local local_char = players.LocalPlayer.Character
+                local dist = 0
+
+                if local_char and local_char:FindFirstChild('HumanoidRootPart') then
+                    dist = math.floor((local_char.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                end
+
+                local top_y = camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 2.5, 0)).Y
+                local bot_y = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.5, 0)).Y
+                local size_y = bot_y - top_y
+                local size_x = size_y / 2
+                local box_left = pos.X - size_x / 2
+                local box_top = top_y
+                local box_bottom = bot_y
+
+                drawings.box_outline.Visible = visuals.boxes
+                drawings.box_outline.Size = Vector2.new(size_x, size_y)
+                drawings.box_outline.Position = Vector2.new(box_left, box_top)
+                drawings.box.Visible = visuals.boxes
+                drawings.box.Size = Vector2.new(size_x, size_y)
+                drawings.box.Position = Vector2.new(box_left, box_top)
+                drawings.name.Visible = visuals.names
+                drawings.name.Text = string.lower(plr.Name)
+                drawings.name.Position = Vector2.new(pos.X, box_top - 2 - 13)
+
+                local distance_y = box_bottom + 2
+
+                drawings.distance.Visible = visuals.distance
+                drawings.distance.Text = tostring(dist) .. ' st'
+                drawings.distance.Position = Vector2.new(pos.X, distance_y)
+
+                local item_y = visuals.distance and (distance_y + 13 + 2) or (box_bottom + 2)
+
+                drawings.item.Visible = visuals.distance
+
+                local active_tool = char:FindFirstChildOfClass('Tool')
+
+                drawings.item.Text = active_tool and '[' .. string.lower(active_tool.Name) .. ']' or '[unarmed]'
+                drawings.item.Position = Vector2.new(pos.X, item_y)
+
+                local pixel_per_stud = size_y / 6
+                local half_stud_px = pixel_per_stud * 0.5
+                local bar_width = 2
+                local bar_x = box_left - half_stud_px - bar_width
+
+                drawings.health_outline.Visible = visuals.health
+                drawings.health_outline.Size = Vector2.new(bar_width, size_y)
+                drawings.health_outline.Position = Vector2.new(bar_x, box_top)
+                drawings.health_bg.Visible = visuals.health
+                drawings.health_bg.Size = Vector2.new(bar_width, size_y)
+                drawings.health_bg.Position = Vector2.new(bar_x, box_top)
+                drawings.health_bar.Visible = visuals.health
+                drawings.health_bar.Size = Vector2.new(bar_width, size_y * (char.Humanoid.Health / char.Humanoid.MaxHealth))
+                drawings.health_bar.Position = Vector2.new(bar_x, box_bottom - drawings.health_bar.Size.Y)
+            else
+                for _, d in pairs(drawings)do
+                    d.Visible = false
+                end
+            end
+        else
+            for _, d in pairs(drawings)do
+                d.Visible = false
+            end
+        end
+    end
+end
+
+players.PlayerAdded:Connect(create_esp_elements)
+players.PlayerRemoving:Connect(clean_esp_elements)
+
+for _, p in pairs(players:GetPlayers())do
+    if p ~= players.LocalPlayer then
+        create_esp_elements(p)
+    end
+end
+
+run_service:BindToRenderStep('esp_update', 199, update_esp_render)
