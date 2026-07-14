@@ -1,0 +1,561 @@
+-- made by me has solixhub ui
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/wrexlua/SOLIXHUB/refs/heads/retard/SolixUI.lua'))()
+local Window = Library:Window({
+    Name = 'My Hub',
+    Size = UDim2.new(0, 770, 0, 526),
+    FadeSpeed = 0.25,
+})
+local MainPage = Window:Page({
+    Name = 'Main',
+    Columns = 2,
+})
+local MainSection = MainPage:Section({
+    Name = 'Main',
+    Side = 1,
+})
+local AutoSpinEnabled = false
+local AutoSpinThread = nil
+local SpinType = 'Normal'
+
+local function StartAutoSpin()
+    AutoSpinThread = task.spawn(function()
+        while AutoSpinEnabled do
+            local success, err = pcall(function()
+                local Event = game:GetService('ReplicatedStorage').Replicator
+
+                if SpinType == 'Fast' then
+                    local Result = table.pack(Event:InvokeServer('FruitsHandler', 'Spin', {
+                        Type = 'Fast',
+                    }))
+                else
+                    local Result = table.pack(Event:InvokeServer('FruitsHandler', 'Spin', {}))
+                end
+            end)
+
+            if not success then
+                warn('Auto Spin error:', err)
+            end
+
+            task.wait(1)
+        end
+    end)
+end
+local function StopAutoSpin()
+    AutoSpinEnabled = false
+
+    if AutoSpinThread then
+        task.cancel(AutoSpinThread)
+
+        AutoSpinThread = nil
+    end
+end
+
+MainSection:Toggle({
+    Name = 'Auto Spin',
+    Flag = 'AutoSpin',
+    Default = false,
+    Tooltip = 'Auto spins for fruits',
+    Callback = function(Value)
+        AutoSpinEnabled = Value
+
+        if Value then
+            StartAutoSpin()
+        else
+            StopAutoSpin()
+        end
+    end,
+})
+MainSection:Dropdown({
+    Name = 'Spin Type',
+    Flag = 'SpinType',
+    Items = {
+        'Normal',
+        'Fast',
+    },
+    Default = 'Normal',
+    Multi = false,
+    Tooltip = 'Choose spin type',
+    Callback = function(Value)
+        SpinType = Value
+    end,
+})
+
+local AutoFarmEnabled = false
+local AutoFarmThread = nil
+local SelectedKeys = {}
+local KeyMap = {
+    ['1'] = Enum.KeyCode.One,
+    ['2'] = Enum.KeyCode.Two,
+    ['3'] = Enum.KeyCode.Three,
+    ['4'] = Enum.KeyCode.Four,
+}
+local VIM = game:GetService('VirtualInputManager')
+
+local function PressKey(keyCode)
+    VIM:SendKeyEvent(true, keyCode, false, game)
+    task.wait(0.05)
+    VIM:SendKeyEvent(false, keyCode, false, game)
+end
+local function ClickMouse()
+    VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+end
+local function StartAutoFarm()
+    AutoFarmThread = task.spawn(function()
+        while AutoFarmEnabled do
+            for _, key in ipairs({
+                '1',
+                '2',
+                '3',
+                '4',
+            })do
+                if not AutoFarmEnabled then
+                    break
+                end
+                if SelectedKeys[key] then
+                    PressKey(KeyMap[key])
+                    task.wait(0.1)
+                    ClickMouse()
+                    task.wait(0.2)
+                end
+            end
+        end
+    end)
+end
+local function StopAutoFarm()
+    AutoFarmEnabled = false
+
+    if AutoFarmThread then
+        task.cancel(AutoFarmThread)
+
+        AutoFarmThread = nil
+    end
+end
+
+MainSection:Dropdown({
+    Name = 'Farm Keys',
+    Flag = 'FarmKeys',
+    Items = {
+        '1',
+        '2',
+        '3',
+        '4',
+    },
+    Default = {},
+    Multi = true,
+    Tooltip = 'Choose which keys to use for auto farm',
+    Callback = function(Value)
+        SelectedKeys = Value
+    end,
+})
+MainSection:Toggle({
+    Name = 'Auto Farm',
+    Flag = 'AutoFarm',
+    Default = false,
+    Tooltip = 'Automatically presses selected keys and clicks',
+    Callback = function(Value)
+        AutoFarmEnabled = Value
+
+        if Value then
+            StartAutoFarm()
+        else
+            StopAutoFarm()
+        end
+    end,
+})
+
+local VisualsPage = Window:Page({
+    Name = 'Visuals',
+    Columns = 2,
+})
+local VisualsSection = VisualsPage:Section({
+    Name = 'Visuals',
+    Side = 1,
+})
+local KillNotifyData = {
+    VictimId = '',
+    PlayerId = '',
+    Length = '8',
+}
+
+VisualsSection:Textbox({
+    Name = 'Victim ID',
+    Flag = 'KillNotifyVictimId',
+    Default = '',
+    Placeholder = 'Enter victim UserId...',
+    Callback = function(Value)
+        KillNotifyData.VictimId = Value
+    end,
+})
+VisualsSection:Textbox({
+    Name = 'Killer ID',
+    Flag = 'KillNotifyPlayerId',
+    Default = '',
+    Placeholder = 'Enter killer UserId...',
+    Callback = function(Value)
+        KillNotifyData.PlayerId = Value
+    end,
+})
+VisualsSection:Textbox({
+    Name = 'Length',
+    Flag = 'KillNotifyLength',
+    Default = '8',
+    Placeholder = 'Enter duration in seconds...',
+    Callback = function(Value)
+        KillNotifyData.Length = Value
+    end,
+})
+
+local function GetNil(Name, DebugId)
+    for _, Object in getnilinstances()do
+        if Object.Name == Name and Object:GetDebugId() == DebugId then
+            return Object
+        end
+    end
+end
+
+local KillNotifyButtons = VisualsSection:Button()
+
+KillNotifyButtons:Add('Kill Notification', function()
+    local VictimId = tonumber(KillNotifyData.VictimId)
+    local PlayerId = tonumber(KillNotifyData.PlayerId)
+    local Length = tonumber(KillNotifyData.Length)
+
+    if not VictimId or not PlayerId then
+        Library:Notification('Error', 'Please enter valid Victim ID and Killer ID.', 3)
+
+        return
+    end
+    if not Length then
+        Length = 8
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').ReplicatorNoYield
+
+        firesignal(Event.OnClientEvent, 'KillFeed', 'Add', {
+            Victim = VictimId,
+            Player = PlayerId,
+            Frame = GetNil('Template', '0_1519774'),
+            Length = Length,
+            StartTime = tick(),
+            FromServer = true,
+        })
+    end)
+
+    if not success then
+        warn('Kill Notification error:', err)
+        Library:Notification('Error', 'Failed to fire kill notification.', 3)
+
+        return
+    end
+end, false, 'Fires a fake kill notification popup')
+
+local GemNotifyData = {
+    Amount = '',
+}
+
+VisualsSection:Textbox({
+    Name = 'Gem Amount',
+    Flag = 'GemNotifyAmount',
+    Default = '',
+    Placeholder = 'Enter amount of gems...',
+    Callback = function(Value)
+        GemNotifyData.Amount = Value
+    end,
+})
+
+local GemNotifyButtons = VisualsSection:Button()
+
+GemNotifyButtons:Add('Gem Notification', function()
+    local Amount = tonumber(GemNotifyData.Amount)
+
+    if not Amount then
+        Library:Notification('Error', 'Please enter a valid gem amount.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Replicator
+        local Callback = getcallbackvalue(Event, 'OnClientInvoke')
+
+        Callback('Notifications', 'Start', {
+            FromServer = true,
+            Text = '<Color=255,0,255><Gained ' .. Amount .. ' gems!>',
+            StartTime = tick(),
+            Length = 5,
+            Size = 0.8,
+        })
+    end)
+
+    if not success then
+        warn('Gem Notification error:', err)
+        Library:Notification('Error', 'Failed to fire gem notification.', 3)
+
+        return
+    end
+end, false, 'Fires a fake gem gained notification popup')
+
+local LevelNotifyData = {
+    Level = '',
+}
+
+VisualsSection:Textbox({
+    Name = 'Level Amount',
+    Flag = 'LevelNotifyAmount',
+    Default = '',
+    Placeholder = 'Enter level number...',
+    Callback = function(Value)
+        LevelNotifyData.Level = Value
+    end,
+})
+
+local LevelNotifyButtons = VisualsSection:Button()
+
+LevelNotifyButtons:Add('Level Notification', function()
+    local Level = tonumber(LevelNotifyData.Level)
+
+    if not Level then
+        Library:Notification('Error', 'Please enter a valid level number.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Replicator
+        local Callback = getcallbackvalue(Event, 'OnClientInvoke')
+
+        Callback('Notifications', 'Start', {
+            FromServer = true,
+            Text = '<Color=255,255,0><Level Up!> (' .. Level .. ')',
+            StartTime = tick(),
+            Length = 5,
+            Size = 0.8,
+        })
+    end)
+
+    if not success then
+        warn('Level Notification error:', err)
+        Library:Notification('Error', 'Failed to fire level notification.', 3)
+
+        return
+    end
+end, false, 'Fires a fake level up notification popup')
+
+local LeaderboardSection = VisualsPage:Section({
+    Name = 'Leaderboard Spoofer',
+    Side = 2,
+})
+local LeaderboardEnabled = false
+local LeaderboardData = {
+    UserId = '',
+    Wins = '',
+    Position = '',
+}
+
+LeaderboardSection:Textbox({
+    Name = 'User ID',
+    Flag = 'LeaderboardUserId',
+    Default = '',
+    Placeholder = 'Enter User ID...',
+    Callback = function(Value)
+        LeaderboardData.UserId = Value
+    end,
+})
+LeaderboardSection:Textbox({
+    Name = 'Wins',
+    Flag = 'LeaderboardWins',
+    Default = '',
+    Placeholder = 'Enter wins amount...',
+    Callback = function(Value)
+        LeaderboardData.Wins = Value
+    end,
+})
+LeaderboardSection:Textbox({
+    Name = 'Position',
+    Flag = 'LeaderboardPosition',
+    Default = '1',
+    Placeholder = 'Enter position (1-100)...',
+    Callback = function(Value)
+        LeaderboardData.Position = Value
+    end,
+})
+
+local OriginalLeaderboardData = {
+    TournamentWins = {
+        {
+            key = '205985849',
+            value = 1043,
+        },
+        {
+            key = '158201183',
+            value = 888,
+        },
+        {
+            key = '4719303144',
+            value = 728,
+        },
+        {
+            key = '1319033257',
+            value = 693,
+        },
+        {
+            key = '3533945986',
+            value = 585,
+        },
+        {
+            key = '2669506928',
+            value = 546,
+        },
+        {
+            key = '4544809774',
+            value = 516,
+        },
+        {
+            key = '1882225600',
+            value = 494,
+        },
+        {
+            key = '2654011494',
+            value = 491,
+        },
+        {
+            key = '331760241',
+            value = 462,
+        },
+    },
+    Bounty = {
+        {
+            key = '3011634890',
+            value = 999890648,
+        },
+        {
+            key = '4582742350',
+            value = 999694623,
+        },
+        {
+            key = '1839147598',
+            value = 993634926,
+        },
+        {
+            key = '5683974116',
+            value = 992924183,
+        },
+        {
+            key = '7226631176',
+            value = 990996179,
+        },
+        {
+            key = '3623679695',
+            value = 979748479,
+        },
+        {
+            key = '2431757115',
+            value = 973849813,
+        },
+        {
+            key = '5636244612',
+            value = 952511967,
+        },
+        {
+            key = '425315060',
+            value = 950385511,
+        },
+        {
+            key = '4083456353',
+            value = 940571517,
+        },
+    },
+}
+
+local function SpoofLeaderboard()
+    local UserId = LeaderboardData.UserId
+    local Wins = tonumber(LeaderboardData.Wins)
+    local Position = tonumber(LeaderboardData.Position)
+
+    if not UserId or UserId == '' then
+        Library:Notification('Error', 'Please enter a User ID.', 3)
+
+        return
+    end
+    if not Wins then
+        Library:Notification('Error', 'Please enter a valid wins amount.', 3)
+
+        return
+    end
+    if not Position or Position < 1 or Position > 100 then
+        Library:Notification('Error', 'Position must be between 1-100.', 3)
+
+        return
+    end
+
+    local fakeData = {
+        TournamentWins = {},
+        Bounty = {},
+    }
+
+    for i, entry in ipairs(OriginalLeaderboardData.TournamentWins)do
+        table.insert(fakeData.TournamentWins, {
+            key = entry.key,
+            value = entry.value,
+        })
+    end
+    for i, entry in ipairs(OriginalLeaderboardData.Bounty)do
+        table.insert(fakeData.Bounty, {
+            key = entry.key,
+            value = entry.value,
+        })
+    end
+
+    table.insert(fakeData.TournamentWins, Position, {
+        key = UserId,
+        value = Wins,
+    })
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').ReplicatorNoYield
+
+        firesignal(Event.OnClientEvent, 'Leaderboards', 'Update', fakeData)
+    end)
+
+    if not success then
+        warn('Leaderboard Spoof error:', err)
+        Library:Notification('Error', 'Failed to spoof leaderboard.', 3)
+
+        return
+    end
+
+    Library:Notification('Success', 'Leaderboard spoofed at position ' .. Position .. '!', 3)
+end
+local function RefreshLeaderboard()
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').ReplicatorNoYield
+
+        firesignal(Event.OnClientEvent, 'Leaderboards', 'Update', OriginalLeaderboardData)
+    end)
+
+    if not success then
+        warn('Leaderboard Refresh error:', err)
+    else
+        Library:Notification('Refreshed', 'Leaderboard restored!', 3)
+    end
+end
+
+LeaderboardSection:Toggle({
+    Name = 'Enable Spoofer',
+    Flag = 'LeaderboardSpoofer',
+    Default = false,
+    Tooltip = 'Spoofs the leaderboard with your custom values',
+    Callback = function(Value)
+        LeaderboardEnabled = Value
+
+        if Value then
+            SpoofLeaderboard()
+        else
+            RefreshLeaderboard()
+        end
+    end,
+})
+Library:CheckForAutoLoad()
