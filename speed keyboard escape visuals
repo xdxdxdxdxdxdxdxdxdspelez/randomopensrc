@@ -1,0 +1,431 @@
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/wrexlua/SOLIXHUB/refs/heads/retard/SolixUI.lua'))()
+local Window = Library:Window({
+    Name = 'My Hub',
+    Size = UDim2.new(0, 770, 0, 526),
+    FadeSpeed = 0.25,
+})
+
+local function PlayNotifSound()
+    pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Packages._Index['littensy_remo@1.5.3'].remo.container.SoundManager_Play
+
+        firesignal(Event.OnClientEvent, 'NOTIF1')
+    end)
+end
+
+local MainPage = Window:Page({
+    Name = 'Main',
+    Columns = 2,
+})
+local MainSection = MainPage:Section({
+    Name = 'Main',
+    Side = 1,
+})
+local MainButtons = MainSection:Button()
+
+MainButtons:Add('Treadmill', function()
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Remotes.PlacePersonalTreadmill
+
+        Event:InvokeServer()
+    end)
+
+    if not success then
+        warn('Treadmill error:', err)
+        Library:Notification('Error', 'Failed to place treadmill.', 3)
+    end
+end, false, 'Places a personal treadmill')
+
+local VisualsPage = Window:Page({
+    Name = 'Visuals',
+    Columns = 2,
+})
+local VisualsSection = VisualsPage:Section({
+    Name = 'Message Announce',
+    Side = 1,
+})
+local AnnounceData = {
+    PlayerId = '',
+    Message = '',
+    SenderName = '',
+    IsOwner = false,
+}
+
+VisualsSection:Textbox({
+    Name = 'Player ID',
+    Flag = 'AnnouncePlayerId',
+    Default = '',
+    Placeholder = 'Enter Sender UserId...',
+    Callback = function(Value)
+        AnnounceData.PlayerId = Value
+    end,
+})
+VisualsSection:Textbox({
+    Name = 'Message',
+    Flag = 'AnnounceMessage',
+    Default = '',
+    Placeholder = 'Enter announcement text...',
+    Callback = function(Value)
+        AnnounceData.Message = Value
+    end,
+})
+VisualsSection:Textbox({
+    Name = 'Sender Name',
+    Flag = 'AnnounceSenderName',
+    Default = '',
+    Placeholder = 'Enter sender name...',
+    Callback = function(Value)
+        AnnounceData.SenderName = Value
+    end,
+})
+VisualsSection:Toggle({
+    Name = 'Is Owner',
+    Flag = 'AnnounceIsOwner',
+    Default = false,
+    Tooltip = 'Shows the owner badge/tag on the announcement',
+    Callback = function(Value)
+        AnnounceData.IsOwner = Value
+    end,
+})
+
+local AnnounceButtons = VisualsSection:Button()
+
+AnnounceButtons:Add('Announce', function()
+    local PlayerId = tonumber(AnnounceData.PlayerId)
+
+    if not PlayerId then
+        Library:Notification('Error', 'Please enter a valid Player ID.', 3)
+
+        return
+    end
+    if AnnounceData.Message == '' then
+        Library:Notification('Error', 'Please enter a message.', 3)
+
+        return
+    end
+    if AnnounceData.SenderName == '' then
+        Library:Notification('Error', 'Please enter a sender name.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Remotes.AdminAnnounce
+
+        firesignal(Event.OnClientEvent, {
+            text = AnnounceData.Message,
+            isOwner = AnnounceData.IsOwner,
+            senderUserId = PlayerId,
+            senderName = AnnounceData.SenderName,
+        })
+    end)
+
+    if not success then
+        warn('Announce error:', err)
+        Library:Notification('Error', 'Failed to send announcement.', 3)
+
+        return
+    end
+
+    PlayNotifSound()
+end, false, 'Sends a fake admin announcement')
+
+local WinPopupData = {
+    Amount = '',
+}
+
+VisualsSection:Textbox({
+    Name = 'Win Popup Amount',
+    Flag = 'WinPopupAmount',
+    Default = '',
+    Placeholder = 'Enter win amount...',
+    Callback = function(Value)
+        WinPopupData.Amount = Value
+    end,
+})
+
+local WinPopupButtons = VisualsSection:Button()
+
+WinPopupButtons:Add('Win Popup', function()
+    local Amount = tonumber(WinPopupData.Amount)
+
+    if not Amount then
+        Library:Notification('Error', 'Please enter a valid win amount.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Remotes.ShowWin
+
+        firesignal(Event.OnClientEvent, Amount)
+    end)
+
+    if not success then
+        warn('Win Popup error:', err)
+        Library:Notification('Error', 'Failed to fire win popup.', 3)
+
+        return
+    end
+
+    PlayNotifSound()
+end, false, 'Fires a fake win popup')
+
+local CustomNotifyData = {
+    Message = '',
+    Color = Color3.new(1, 0.7843137383461, 0.19607843458652),
+    Length = '4',
+}
+
+VisualsSection:Textbox({
+    Name = 'Notification Message',
+    Flag = 'CustomNotifyMessage',
+    Default = '',
+    Placeholder = 'Enter notification text...',
+    Callback = function(Value)
+        CustomNotifyData.Message = Value
+    end,
+})
+VisualsSection:Textbox({
+    Name = 'Notification Length',
+    Flag = 'CustomNotifyLength',
+    Default = '4',
+    Placeholder = 'Enter duration in seconds...',
+    Callback = function(Value)
+        CustomNotifyData.Length = Value
+    end,
+})
+
+local CustomNotifyColorLabel = VisualsSection:Label('Notification Color', 'Left')
+
+CustomNotifyColorLabel:Colorpicker({
+    Flag = 'CustomNotifyColor',
+    Default = Color3.new(1, 0.7843137383461, 0.19607843458652),
+    Alpha = 0,
+    Callback = function(Color, Alpha)
+        CustomNotifyData.Color = Color
+    end,
+})
+
+local CustomNotifyButtons = VisualsSection:Button()
+
+CustomNotifyButtons:Add('Send Notification', function()
+    if CustomNotifyData.Message == '' then
+        Library:Notification('Error', 'Please enter a message.', 3)
+
+        return
+    end
+
+    local Length = tonumber(CustomNotifyData.Length)
+
+    if not Length then
+        Length = 4
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Packages._Index['littensy_remo@1.5.3'].remo.container.Notification_ShowGeneralNotification
+
+        firesignal(Event.OnClientEvent, CustomNotifyData.Message, CustomNotifyData.Color, Length)
+    end)
+
+    if not success then
+        warn('Custom Notification error:', err)
+        Library:Notification('Error', 'Failed to send notification.', 3)
+
+        return
+    end
+
+    PlayNotifSound()
+end, false, 'Sends a custom in-game notification')
+
+local SpooferSection = VisualsPage:Section({
+    Name = 'Spoofer',
+    Side = 2,
+})
+local LevelSpooferData = {
+    Level = '',
+}
+
+SpooferSection:Textbox({
+    Name = 'Level',
+    Flag = 'LevelSpooferLevel',
+    Default = '',
+    Placeholder = 'Enter level/XP value...',
+    Callback = function(Value)
+        LevelSpooferData.Level = Value
+    end,
+})
+
+local LevelSpooferButtons = SpooferSection:Button()
+
+LevelSpooferButtons:Add('Level Spoofer', function()
+    local Level = tonumber(LevelSpooferData.Level)
+
+    if not Level then
+        Library:Notification('Error', 'Please enter a valid level value.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Remotes.UpdateUI
+
+        firesignal(Event.OnClientEvent, {TotalXP = Level})
+    end)
+
+    if not success then
+        warn('Level Spoofer error:', err)
+        Library:Notification('Error', 'Failed to spoof level.', 3)
+
+        return
+    end
+
+    PlayNotifSound()
+end, false, 'Spoofs your displayed level/XP')
+
+local WinsSpooferData = {
+    Wins = '',
+}
+
+SpooferSection:Textbox({
+    Name = 'Wins',
+    Flag = 'WinsSpooferWins',
+    Default = '',
+    Placeholder = 'Enter wins value...',
+    Callback = function(Value)
+        WinsSpooferData.Wins = Value
+    end,
+})
+
+local WinsSpooferButtons = SpooferSection:Button()
+
+WinsSpooferButtons:Add('Wins Spoofer', function()
+    local Wins = tonumber(WinsSpooferData.Wins)
+
+    if not Wins then
+        Library:Notification('Error', 'Please enter a valid wins value.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Remotes.UpdateUI
+
+        firesignal(Event.OnClientEvent, {Wins = Wins})
+    end)
+
+    if not success then
+        warn('Wins Spoofer error:', err)
+        Library:Notification('Error', 'Failed to spoof wins.', 3)
+
+        return
+    end
+
+    PlayNotifSound()
+end, false, 'Spoofs your displayed wins')
+
+local MultiplierData = {
+    XPMult = '',
+    XPDuration = '',
+    WinsMult = '',
+    WinsDuration = '',
+}
+
+SpooferSection:Textbox({
+    Name = 'XP Multiplier',
+    Flag = 'XPMult',
+    Default = '',
+    Placeholder = 'Enter XP multiplier...',
+    Callback = function(Value)
+        MultiplierData.XPMult = Value
+    end,
+})
+SpooferSection:Textbox({
+    Name = 'XP Duration (seconds)',
+    Flag = 'XPDuration',
+    Default = '',
+    Placeholder = 'Enter XP duration...',
+    Callback = function(Value)
+        MultiplierData.XPDuration = Value
+    end,
+})
+SpooferSection:Textbox({
+    Name = 'Wins Multiplier',
+    Flag = 'WinsMult',
+    Default = '',
+    Placeholder = 'Enter Wins multiplier...',
+    Callback = function(Value)
+        MultiplierData.WinsMult = Value
+    end,
+})
+SpooferSection:Textbox({
+    Name = 'Wins Duration (seconds)',
+    Flag = 'WinsDuration',
+    Default = '',
+    Placeholder = 'Enter Wins duration...',
+    Callback = function(Value)
+        MultiplierData.WinsDuration = Value
+    end,
+})
+
+local MultiplierButtons = SpooferSection:Button()
+
+MultiplierButtons:Add('Spoof Multiplier', function()
+    local XPMult = tonumber(MultiplierData.XPMult)
+    local XPDuration = tonumber(MultiplierData.XPDuration)
+    local WinsMult = tonumber(MultiplierData.WinsMult)
+    local WinsDuration = tonumber(MultiplierData.WinsDuration)
+
+    if not XPMult then
+        Library:Notification('Error', 'Please enter a valid XP multiplier.', 3)
+
+        return
+    end
+    if not XPDuration then
+        Library:Notification('Error', 'Please enter a valid XP duration.', 3)
+
+        return
+    end
+    if not WinsMult then
+        Library:Notification('Error', 'Please enter a valid Wins multiplier.', 3)
+
+        return
+    end
+    if not WinsDuration then
+        Library:Notification('Error', 'Please enter a valid Wins duration.', 3)
+
+        return
+    end
+
+    local success, err = pcall(function()
+        local Event = game:GetService('ReplicatedStorage').Packages._Index['littensy_remo@1.5.3'].remo.container.BonusUpdate
+
+        firesignal(Event.OnClientEvent, {
+            globalBonuses = {
+                AdminAbuse = {
+                    XP = {
+                        endTime = tick() + XPDuration,
+                        mult = XPMult,
+                    },
+                    Wins = {
+                        endTime = tick() + WinsDuration,
+                        mult = WinsMult,
+                    },
+                },
+            },
+            playerBonuses = {},
+            serverBonuses = {},
+        })
+    end)
+
+    if not success then
+        warn('Multiplier Spoofer error:', err)
+        Library:Notification('Error', 'Failed to spoof multiplier.', 3)
+
+        return
+    end
+
+    Library:Notification('Success', 'Multipliers spoofed!', 3)
+    PlayNotifSound()
+end, false, 'Spoofs XP and Wins multipliers')
+Library:CheckForAutoLoad()
