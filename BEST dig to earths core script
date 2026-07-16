@@ -142,3 +142,4 @@ Library:CheckForAutoLoad()
 Watermark:SetVisible(false)
 KeybindList:SetVisible(false)
 Library:Notification('Welcome!', 'SolixHub loaded.', 5)
+ 
