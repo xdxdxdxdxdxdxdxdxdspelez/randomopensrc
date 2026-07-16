@@ -1,0 +1,144 @@
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/wrexlua/SOLIXHUB/refs/heads/retard/SolixUI.lua'))()
+local Window = Library:Window({
+    Name = 'SolixHub',
+    Size = UDim2.new(0, 770, 0, 526),
+    FadeSpeed = 0.25,
+})
+local Watermark = Library:Watermark('SolixHub | v1.0')
+local KeybindList = Library:KeybindList()
+local MainPage = Window:Page({
+    Name = 'Main',
+    Columns = 2,
+})
+local FarmSection = MainPage:Section({
+    Name = 'Farming',
+    Side = 1,
+})
+local SpinSection = MainPage:Section({
+    Name = 'Spinning',
+    Side = 2,
+})
+local PetSection = MainPage:Section({
+    Name = 'Pets',
+    Side = 1,
+})
+local Remotes = game:GetService('ReplicatedStorage'):WaitForChild('Remotes')
+local DigEvent = Remotes:WaitForChild('DigEvent')
+local GemEvent = Remotes:WaitForChild('GemEvent')
+local SpinPrizeEvent = Remotes:WaitForChild('SpinPrizeEvent')
+local TreasureEvent = Remotes:WaitForChild('TreasureEvent')
+local PetCageEvent = Remotes:WaitForChild('PetCageEvent')
+local AutoCashEnabled = false
+local AutoGemEnabled = false
+local InfSpinsEnabled = false
+local InfDominusEnabled = false
+local GiveBestPetEnabled = false
+
+task.spawn(function()
+    while true do
+        if AutoCashEnabled then
+            pcall(function()
+                DigEvent:FireServer('hello')
+            end)
+        end
+
+        task.wait(0.01)
+    end
+end)
+task.spawn(function()
+    while true do
+        if AutoGemEnabled then
+            pcall(function()
+                GemEvent:FireServer(11, 'bye')
+            end)
+            pcall(function()
+                TreasureEvent:FireServer('Blackhole2')
+            end)
+        end
+
+        task.wait(0.01)
+    end
+end)
+task.spawn(function()
+    while true do
+        if InfSpinsEnabled then
+            pcall(function()
+                SpinPrizeEvent:FireServer(10)
+            end)
+        end
+
+        task.wait(0.01)
+    end
+end)
+task.spawn(function()
+    while true do
+        if InfDominusEnabled then
+            pcall(function()
+                SpinPrizeEvent:FireServer(4)
+            end)
+        end
+
+        task.wait(0.01)
+    end
+end)
+task.spawn(function()
+    while true do
+        if GiveBestPetEnabled then
+            pcall(function()
+                PetCageEvent:FireServer('Empyreus')
+            end)
+        end
+
+        task.wait(0.01)
+    end
+end)
+FarmSection:Toggle({
+    Name = 'Auto Cash',
+    Flag = 'AutoCash',
+    Default = false,
+    Tooltip = 'Spams DigEvent every 0.01s',
+    Callback = function(Value)
+        AutoCashEnabled = Value
+    end,
+})
+FarmSection:Toggle({
+    Name = 'Auto Gem',
+    Flag = 'AutoGem',
+    Default = false,
+    Tooltip = 'Spams GemEvent + TreasureEvent every 0.01s',
+    Callback = function(Value)
+        AutoGemEnabled = Value
+    end,
+})
+SpinSection:Toggle({
+    Name = 'Inf Spins',
+    Flag = 'InfSpins',
+    Default = false,
+    Tooltip = 'Spams SpinPrizeEvent(10) every 0.01s',
+    Callback = function(Value)
+        InfSpinsEnabled = Value
+    end,
+})
+SpinSection:Toggle({
+    Name = 'Inf Dominus Pets',
+    Flag = 'InfDominus',
+    Default = false,
+    Tooltip = 'Spams SpinPrizeEvent(4) every 0.01s',
+    Callback = function(Value)
+        InfDominusEnabled = Value
+    end,
+})
+PetSection:Toggle({
+    Name = 'Give Best Pet',
+    Flag = 'GiveBestPet',
+    Default = false,
+    Tooltip = 'Spams PetCageEvent(Empyreus) every 0.01s',
+    Callback = function(Value)
+        GiveBestPetEnabled = Value
+    end,
+})
+Library:CreateSettingsPage(Window, Watermark, KeybindList)
+Library:CheckForAutoLoad()
+Watermark:SetVisible(false)
+KeybindList:SetVisible(false)
+Library:Notification('Welcome!', 'SolixHub loaded.', 5)
